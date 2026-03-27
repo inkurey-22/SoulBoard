@@ -7,15 +7,20 @@ on:
 
 jobs:
   build:
-    name: Build (${{ matrix.target }})
+    name: Build Linux
     runs-on: self-hosted
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v6
 
-      - name: Build Linux
-        run: cargo build --release --target=x86_64-unknown-linux-gnu
+      - name: Build with Cargo
+        run: cargo build --release --target x86_64-unknown-linux-gnu
+  
+    name: Build Windows
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
       
-      - name: Build Windows
-        run: cargo build --release --target=x86_64-pc-windows-gnu
+      - name: Build with Cargo
+        run: cargo build --release --target x86_64-pc-windows-gnu
