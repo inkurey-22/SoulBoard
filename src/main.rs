@@ -7,6 +7,8 @@
 //! guides. Convert inline `//` comments to `///` (or `//!` for module-level)
 //! comments so they appear in generated documentation.
 
+#![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
+
 use iced::Task;
 
 mod app;
