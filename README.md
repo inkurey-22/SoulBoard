@@ -10,6 +10,7 @@ It works with a simple Rust app to input informations. The app then shares the s
 - Track Team A and Team B scores
 - Edit team names and a match description
 - Reset scores
+- Manage map pool with pick and ban
 - Share live state with external HTML/overlay clients
 
 ## Run
