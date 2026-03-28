@@ -22,18 +22,80 @@ struct BridgeState {
     latest_state: Arc<Mutex<TeamState>>,
 }
 
+/// Handle for publishing score/state updates to connected clients.
 pub struct BridgeHandle {
     tx: broadcast::Sender<String>,
     latest_state: Arc<Mutex<TeamState>>,
 }
-
+/// Serialize a `TeamState` for publishing over the bridge. Adds top-level
+/// `map` and `mode` keys derived from the selected slot (or the first
+/// non-empty slot) and removes internal slot vectors from the payload.
 pub fn scores_payload(state: &TeamState) -> String {
-    serde_json::to_string(state).unwrap_or_else(|_| {
-        "{\"description\":\"\",\"team_a_name\":\"Team A\",\"team_b_name\":\"Team B\",\"team_a\":0,\"team_b\":0}"
-            .to_string()
-    })
+    match serde_json::to_value(state) {
+        Ok(mut value) => {
+            if let serde_json::Value::Object(ref mut map) = value {
+                map.remove("map_mode_slots");
+                map.remove("selected_slot");
+
+                let mut current_map: Option<String> = None;
+                let mut current_mode: Option<String> = None;
+
+                if let Some(idx) = state.selected_slot
+                    && idx < state.map_mode_slots.len()
+                {
+                    let (ref map_opt, ref mode_opt) = state.map_mode_slots[idx];
+                    if let Some(m) = map_opt
+                        && !m.is_empty()
+                    {
+                        current_map = Some(m.clone());
+                    }
+                    if let Some(mo) = mode_opt
+                        && !mo.is_empty()
+                    {
+                        current_mode = Some(mo.clone());
+                    }
+                }
+
+                if current_map.is_none() || current_mode.is_none() {
+                    for slot in &state.map_mode_slots {
+                        if current_map.is_none()
+                            && let Some(ref m) = slot.0
+                            && !m.is_empty()
+                        {
+                            current_map = Some(m.clone());
+                        }
+                        if current_mode.is_none()
+                            && let Some(ref mo) = slot.1
+                            && !mo.is_empty()
+                        {
+                            current_mode = Some(mo.clone());
+                        }
+                        if current_map.is_some() && current_mode.is_some() {
+                            break;
+                        }
+                    }
+                }
+
+                if let Some(m) = current_map {
+                    map.insert("map".to_string(), serde_json::Value::String(m));
+                }
+                if let Some(mo) = current_mode {
+                    map.insert("mode".to_string(), serde_json::Value::String(mo));
+                }
+            }
+
+            serde_json::to_string(&value).unwrap_or_else(|_| {
+                serde_json::to_string(&TeamState::default()).unwrap_or_else(|_| "{}".to_string())
+            })
+        }
+        Err(_) => serde_json::to_string(&TeamState::default()).unwrap_or_else(|_| "{}".to_string()),
+    }
 }
 
+/// Start the HTTP/WebSocket bridge server in a background thread.
+///
+/// Returns a `BridgeHandle` that can be used to publish state updates
+/// to connected clients.
 pub fn start_bridge(initial_state: TeamState) -> BridgeHandle {
     let (tx, _rx) = broadcast::channel::<String>(64);
     let latest_state = Arc::new(Mutex::new(initial_state.clone()));
@@ -78,6 +140,7 @@ pub fn start_bridge(initial_state: TeamState) -> BridgeHandle {
 }
 
 impl BridgeHandle {
+    /// Publish a state update to connected clients.
     pub fn publish_state(&self, state: &TeamState) {
         if let Ok(mut guard) = self.latest_state.lock() {
             *guard = state.clone();

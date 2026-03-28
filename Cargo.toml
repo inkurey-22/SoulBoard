@@ -2,6 +2,9 @@
 name = "soulboard"
 version = "0.1.0"
 edition = "2024"
+description = "Small overlay manager for Splatoon competitive broadcasting"
+license = "EUPL-1.2"
+readme = "README.md"
 
 [dependencies]
 axum = { version = "0.8", features = ["ws"] }
