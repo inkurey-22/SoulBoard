@@ -18,7 +18,7 @@ This document explains how to prepare your files, run SoulBoard, and consume its
 
 1. Put `assets/` next to the SoulBoard executable.
 2. Ensure `assets/maps`, `assets/modes`, and `assets/teams` exist.
-3. Run SoulBoard (`cargo run` in dev, or the release binary).
+3. Run the SoulBoard executable (`soulboard` on Linux/macOS or `soulboard.exe` on Windows).
 4. Connect your overlay HTML to `ws://127.0.0.1:7878/ws`.
 
 SoulBoard does not render overlays itself. It only provides state to external clients.
@@ -66,18 +66,19 @@ Important notes:
 
 ## 3. Run and Persistence
 
-### Development
+### Running SoulBoard
+
+Simply run the SoulBoard executable from the command line:
 
 ```bash
-cargo run
+# Linux/macOS
+./soulboard
+
+# Windows
+soulboard.exe
 ```
 
-### Release
-
-```bash
-cargo build --release
-./target/release/soulboard
-```
+Make sure `assets/` and `exports/` are in the same directory as the executable.
 
 ### State file
 
