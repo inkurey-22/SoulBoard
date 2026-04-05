@@ -213,3 +213,6 @@ This keeps asset paths and overlay paths stable.
 - Reconnect automatically on socket close, as shown above.
 
 That is enough to build stable, scene-specific HTML overlays while using SoulBoard as the live state source.
+
+## 10. Questions
+If you have any question, send me an email (inkurey22.tr@proton.me), a message on discord (@inkurey22) or on Matrix (@inkurey:dank-me.me)
