@@ -1,5 +1,5 @@
 use crate::app::palette as pal;
-use iced::widget::{button, checkbox, container, text_input, pick_list, scrollable, overlay::menu};
+use iced::widget::{button, checkbox, container, text_input, scrollable, overlay::menu};
 use iced::{Background, Border, Color, Vector, Shadow};
 
 pub struct Card;
@@ -36,13 +36,13 @@ impl button::Catalog for PrimaryButton {
 
     fn style(&self, _class: &Self::Class<'_>, status: button::Status) -> button::Style {
         let active = button::Style {
-            background: Some(Background::Color(pal::yellow())),
+            background: Some(Background::Color(pal::red())),
             border: Border {
                 color: Color::TRANSPARENT,
                 width: 0.0,
                 radius: 6.0.into(),
             },
-            text_color: pal::text(),
+            text_color: pal::base(),
             shadow: Shadow {
                 offset: Vector::new(0.0, 0.0),
                 ..Default::default()
@@ -76,7 +76,7 @@ impl text_input::Catalog for Input {
             icon: Color::TRANSPARENT,
             placeholder: pal::subtext0(),
             value: pal::text(),
-            selection: pal::yellow(),
+            selection: pal::red(),
         };
 
         match status {
@@ -119,38 +119,6 @@ impl scrollable::Catalog for Dropdown {
     }
 }
 
-impl pick_list::Catalog for Dropdown {
-    type Class<'a> = ();
-
-    fn default<'a>() -> <Self as pick_list::Catalog>::Class<'a> {
-    }
-
-    fn style(&self, _class: &<Self as pick_list::Catalog>::Class<'_>, status: pick_list::Status) -> pick_list::Style {
-        let active = pick_list::Style {
-            text_color: pal::text(),
-            placeholder_color: pal::subtext0(),
-            handle_color: pal::text(),
-            background: Background::Color(pal::surface1()),
-            border: Border {
-                color: pal::surface1(),
-                width: 1.0,
-                radius: 6.0.into(),
-            },
-        };
-
-        match status {
-            pick_list::Status::Active => active,
-            pick_list::Status::Hovered | pick_list::Status::Opened => pick_list::Style {
-                border: Border {
-                    color: pal::yellow(),
-                    ..active.border
-                },
-                ..active
-            },
-        }
-    }
-}
-
 impl menu::Catalog for Dropdown {
     type Class<'a> = ();
 
@@ -167,7 +135,7 @@ impl menu::Catalog for Dropdown {
                 radius: 6.0.into(),
             },
             selected_text_color: pal::base(),
-            selected_background: Background::Color(pal::yellow()),
+            selected_background: Background::Color(pal::red()),
         }
     }
 }
@@ -187,14 +155,14 @@ impl checkbox::Catalog for Checkbox {
 
         checkbox::Style {
             background: if is_checked {
-                Background::Color(pal::yellow())
+                Background::Color(pal::red())
             } else {
                 Background::Color(pal::surface1())
             },
             icon_color: pal::base(),
             border: Border {
                 color: if is_checked {
-                    pal::yellow()
+                    pal::red()
                 } else {
                     pal::surface1()
                 },
@@ -219,10 +187,6 @@ pub fn primary_button_style<Class>(_class: &Class, status: button::Status) -> bu
 
 pub fn input_style<Class>(_class: &Class, status: text_input::Status) -> text_input::Style {
     text_input::Catalog::style(&Input, &(), status)
-}
-
-pub fn dropdown_pick_style<Class>(_class: &Class, status: pick_list::Status) -> pick_list::Style {
-    pick_list::Catalog::style(&Dropdown, &(), status)
 }
 
 pub fn dropdown_menu_style<Class>(_class: &Class) -> menu::Style {

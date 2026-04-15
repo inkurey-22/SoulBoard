@@ -11,7 +11,7 @@ use crate::{
 };
 use iced::{
     Alignment, Element, Task,
-    widget::{button, column, container, row},
+    widget::{button, column, combo_box, container, row},
 };
 
 /// Application state for the UI and bridge.
@@ -19,9 +19,11 @@ use iced::{
 pub struct Soulboard {
     pub state: TeamState,
     pub bridge: Option<BridgeHandle>,
-    pub available_maps: Vec<String>,
-    pub available_modes: Vec<String>,
-    pub available_teams: Vec<String>,
+    pub team_a_combo_state: combo_box::State<String>,
+    pub team_b_combo_state: combo_box::State<String>,
+    pub slot_map_combo_states: Vec<combo_box::State<String>>,
+    pub slot_mode_combo_states: Vec<combo_box::State<String>>,
+    pub mode_line_map_combo_states: Vec<Vec<combo_box::State<String>>>,
     pub selected_tab: usize,
 }
 

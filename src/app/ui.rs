@@ -4,34 +4,35 @@ use crate::app::palette as pal;
 use crate::app::styles as styles;
 use iced::{
     Alignment, Element,
-    widget::{button, checkbox, column, container, pick_list, row, text, text_input},
+    widget::{button, checkbox, column, combo_box, container, row, text, text_input},
 };
 
 pub(super) fn view_stream_and_teams(state: &Soulboard) -> Element<'_, Message> {
-    // team pick lists
     let team_a_selected = if state.state.team_a_dir.is_empty() {
         None
     } else {
-        Some(state.state.team_a_dir.clone())
+        Some(&state.state.team_a_dir)
     };
     let team_b_selected = if state.state.team_b_dir.is_empty() {
         None
     } else {
-        Some(state.state.team_b_dir.clone())
+        Some(&state.state.team_b_dir)
     };
-    let team_a_pick = pick_list(
-        state.available_teams.as_slice(),
-        team_a_selected.clone(),
+    let team_a_pick = combo_box(
+        &state.team_a_combo_state,
+        "Select team A",
+        team_a_selected,
         Message::SelectTeamA,
     )
-    .style(styles::dropdown_pick_style)
+    .input_style(styles::input_style)
     .menu_style(styles::dropdown_menu_style);
-    let team_b_pick = pick_list(
-        state.available_teams.as_slice(),
-        team_b_selected.clone(),
+    let team_b_pick = combo_box(
+        &state.team_b_combo_state,
+        "Select team B",
+        team_b_selected,
         Message::SelectTeamB,
     )
-    .style(styles::dropdown_pick_style)
+    .input_style(styles::input_style)
     .menu_style(styles::dropdown_menu_style);
 
     let team_a_controls = row![
@@ -57,7 +58,7 @@ pub(super) fn view_stream_and_teams(state: &Soulboard) -> Element<'_, Message> {
     .align_y(Alignment::Center);
 
     let left = column![
-        text("Soulboard").size(42).color(pal::yellow()),
+        text("Soulboard").size(42).color(pal::red()),
         container(text("Stream Info").size(16).color(pal::subtext1())).padding(8),
         text_input("Description", &state.state.description)
             .on_input(Message::SetDescription)
@@ -93,7 +94,7 @@ pub(super) fn view_map_slots(state: &Soulboard) -> Element<'_, Message> {
     let mut map_rows = column![];
 
     // Header for map slots
-    map_rows = map_rows.push(container(text("Map Slots").color(pal::yellow()).size(20)).padding(6));
+    map_rows = map_rows.push(container(text("Map Slots").color(pal::red()).size(20)).padding(6));
 
     // header row with explicit columns
     map_rows = map_rows.push(
@@ -106,22 +107,28 @@ pub(super) fn view_map_slots(state: &Soulboard) -> Element<'_, Message> {
     );
 
     for i in 0..9 {
-        let slot = state
-            .state
-            .map_mode_slots
-            .get(i)
-            .cloned()
-            .unwrap_or((None, None));
+        let slot = state.state.map_mode_slots.get(i);
+        let map_selected = slot.and_then(|(map, _)| map.as_ref());
+        let mode_selected = slot.and_then(|(_, mode)| mode.as_ref());
 
-        let map_pick = pick_list(state.available_maps.as_slice(), slot.0.clone(), move |s| {
+        let map_combo_state = match state.slot_map_combo_states.get(i) {
+            Some(combo_state) => combo_state,
+            None => continue,
+        };
+        let mode_combo_state = match state.slot_mode_combo_states.get(i) {
+            Some(combo_state) => combo_state,
+            None => continue,
+        };
+
+        let map_pick = combo_box(map_combo_state, "Select map", map_selected, move |s| {
             Message::SelectMap(i, s)
         })
-        .style(styles::dropdown_pick_style)
+        .input_style(styles::input_style)
         .menu_style(styles::dropdown_menu_style);
-        let mode_pick = pick_list(state.available_modes.as_slice(), slot.1.clone(), move |s| {
+        let mode_pick = combo_box(mode_combo_state, "Select mode", mode_selected, move |s| {
             Message::SelectMode(i, s)
         })
-        .style(styles::dropdown_pick_style)
+        .input_style(styles::input_style)
         .menu_style(styles::dropdown_menu_style);
 
         let is_selected = state.state.selected_slot == Some(i);
@@ -151,15 +158,23 @@ pub(super) fn view_mode_lines(state: &Soulboard) -> Element<'_, Message> {
         let mut col = column![];
 
         // mode name at top of column
-        col = col.push(container(text(&mode.name).color(pal::yellow()).size(18)).padding(6));
+        col = col.push(container(text(&mode.name).color(pal::red()).size(18)).padding(6));
 
         for (mj, _entry) in mode.maps.iter().enumerate() {
-            let current = state.state.mode_lines[mi].maps[mj].map.clone();
+            let current = state.state.mode_lines[mi].maps[mj].map.as_ref();
+            let map_combo_state = match state
+                .mode_line_map_combo_states
+                .get(mi)
+                .and_then(|row| row.get(mj))
+            {
+                Some(combo_state) => combo_state,
+                None => continue,
+            };
 
-            let map_pick = pick_list(state.available_maps.as_slice(), current, move |s| {
+            let map_pick = combo_box(map_combo_state, "Select map", current, move |s| {
                 Message::SelectModeLineMap(mi, mj, s)
             })
-            .style(styles::dropdown_pick_style)
+            .input_style(styles::input_style)
             .menu_style(styles::dropdown_menu_style);
 
             let is_banned = state.state.mode_lines[mi].maps[mj].status == MapStatus::Banned;

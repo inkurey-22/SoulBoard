@@ -8,6 +8,7 @@ readme = "README.md"
 
 [dependencies]
 axum = { version = "0.8", features = ["ws"] }
+catppuccin = { version = "2", features = ["iced"] }
 iced = "0.13"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

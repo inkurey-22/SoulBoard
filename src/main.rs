@@ -19,6 +19,7 @@ mod storage;
 use crate::storage::load_state;
 use app::{Soulboard, update, view};
 use bridge::start_bridge;
+use iced::widget::combo_box;
 
 fn main() -> iced::Result {
     iced::application("Soulboard", update, view)
@@ -62,13 +63,53 @@ fn main() -> iced::Result {
                 }
             }
 
+            let team_a_combo_state = combo_box::State::with_selection(
+                teams.clone(),
+                if state.team_a_dir.is_empty() {
+                    None
+                } else {
+                    Some(&state.team_a_dir)
+                },
+            );
+            let team_b_combo_state = combo_box::State::with_selection(
+                teams.clone(),
+                if state.team_b_dir.is_empty() {
+                    None
+                } else {
+                    Some(&state.team_b_dir)
+                },
+            );
+
+            let slot_map_combo_states = state
+                .map_mode_slots
+                .iter()
+                .map(|(map, _)| combo_box::State::with_selection(maps.clone(), map.as_ref()))
+                .collect();
+            let slot_mode_combo_states = state
+                .map_mode_slots
+                .iter()
+                .map(|(_, mode)| combo_box::State::with_selection(modes.clone(), mode.as_ref()))
+                .collect();
+            let mode_line_map_combo_states = state
+                .mode_lines
+                .iter()
+                .map(|line| {
+                    line.maps
+                        .iter()
+                        .map(|entry| combo_box::State::with_selection(maps.clone(), entry.map.as_ref()))
+                        .collect()
+                })
+                .collect();
+
             (
                 Soulboard {
                     state: state.clone(),
                     bridge: Some(start_bridge(state)),
-                    available_maps: maps,
-                    available_modes: modes,
-                    available_teams: teams,
+                    team_a_combo_state,
+                    team_b_combo_state,
+                    slot_map_combo_states,
+                    slot_mode_combo_states,
+                    mode_line_map_combo_states,
                     selected_tab: 0,
                 },
                 Task::none(),
