@@ -13,17 +13,24 @@ use iced::{
     Alignment, Element, Task,
     widget::{button, column, combo_box, container, row},
 };
+use std::path::PathBuf;
 
 /// Application state for the UI and bridge.
 #[derive(Default)]
 pub struct Soulboard {
     pub state: TeamState,
     pub bridge: Option<BridgeHandle>,
+    pub available_teams: Vec<String>,
     pub team_a_combo_state: combo_box::State<String>,
     pub team_b_combo_state: combo_box::State<String>,
     pub slot_map_combo_states: Vec<combo_box::State<String>>,
     pub slot_mode_combo_states: Vec<combo_box::State<String>>,
     pub mode_line_map_combo_states: Vec<Vec<combo_box::State<String>>>,
+    pub create_team_full_input: String,
+    pub create_team_trunc_input: String,
+    pub create_team_logo_path: Option<PathBuf>,
+    pub create_team_feedback: String,
+    pub create_team_feedback_is_error: bool,
     pub selected_tab: usize,
 }
 
@@ -53,7 +60,35 @@ pub enum Message {
     ToggleModeLineStatus(usize, usize, MapStatus),
     SelectTeamA(String),
     SelectTeamB(String),
+    SetCreateTeamFull(String),
+    SetCreateTeamTrunc(String),
+    PickCreateTeamLogo,
+    CreateTeamLogoPicked(Option<PathBuf>),
+    SubmitCreateTeam,
     SwitchTab(usize),
+}
+
+fn refresh_team_combo_states(state: &mut Soulboard) {
+    let teams = teams::list_team_dirs();
+
+    let team_a_selected = if state.state.team_a_dir.is_empty()
+        || !teams.iter().any(|name| name == &state.state.team_a_dir)
+    {
+        None
+    } else {
+        Some(&state.state.team_a_dir)
+    };
+    let team_b_selected = if state.state.team_b_dir.is_empty()
+        || !teams.iter().any(|name| name == &state.state.team_b_dir)
+    {
+        None
+    } else {
+        Some(&state.state.team_b_dir)
+    };
+
+    state.available_teams = teams.clone();
+    state.team_a_combo_state = combo_box::State::with_selection(teams.clone(), team_a_selected);
+    state.team_b_combo_state = combo_box::State::with_selection(teams, team_b_selected);
 }
 
 /// Apply a `Message` to the `Soulboard` state, publish it to the bridge,
@@ -178,6 +213,59 @@ pub fn update(state: &mut Soulboard, message: Message) -> Task<Message> {
                 state.state.team_b_dir = sel.clone();
             }
         }
+        Message::SetCreateTeamFull(value) => {
+            state.create_team_full_input = value;
+            state.create_team_feedback.clear();
+            state.create_team_feedback_is_error = false;
+        }
+        Message::SetCreateTeamTrunc(value) => {
+            state.create_team_trunc_input = value;
+            state.create_team_feedback.clear();
+            state.create_team_feedback_is_error = false;
+        }
+        Message::PickCreateTeamLogo => {
+            return Task::perform(
+                async { rfd::FileDialog::new().set_title("Select team logo").pick_file() },
+                Message::CreateTeamLogoPicked,
+            );
+        }
+        Message::CreateTeamLogoPicked(path) => {
+            state.create_team_logo_path = path;
+            state.create_team_feedback.clear();
+            state.create_team_feedback_is_error = false;
+        }
+        Message::SubmitCreateTeam => {
+            let full = state.create_team_full_input.trim().to_string();
+            let trunc = state.create_team_trunc_input.trim().to_string();
+
+            if full.is_empty() {
+                state.create_team_feedback = "Full name is required".to_string();
+                state.create_team_feedback_is_error = true;
+            } else if trunc.is_empty() {
+                state.create_team_feedback = "Short name is required".to_string();
+                state.create_team_feedback_is_error = true;
+            } else if state.create_team_logo_path.is_none() {
+                state.create_team_feedback = "A logo file is required".to_string();
+                state.create_team_feedback_is_error = true;
+            } else {
+                let logo = state.create_team_logo_path.as_deref();
+                match teams::create_team(&full, &trunc, logo) {
+                    Ok(()) => {
+                        refresh_team_combo_states(state);
+                        state.create_team_feedback =
+                            format!("Team \"{}\" created successfully", full);
+                        state.create_team_feedback_is_error = false;
+                        state.create_team_full_input.clear();
+                        state.create_team_trunc_input.clear();
+                        state.create_team_logo_path = None;
+                    }
+                    Err(err) => {
+                        state.create_team_feedback = err;
+                        state.create_team_feedback_is_error = true;
+                    }
+                }
+            }
+        }
         Message::SwitchTab(idx) => {
             state.selected_tab = idx;
         }
@@ -214,14 +302,18 @@ pub fn view(state: &Soulboard) -> Element<'_, Message> {
         button("Pick / Ban")
             .on_press(Message::SwitchTab(1))
             .style(|_, status| button::Catalog::style(&styles::PrimaryButton, &(), status)),
+        button("Create Team")
+            .on_press(Message::SwitchTab(2))
+            .style(|_, status| button::Catalog::style(&styles::PrimaryButton, &(), status)),
     ]
     .spacing(12);
 
     // Choose which right content to show based on current tab
-    let right_content: Element<'_, Message> = if state.selected_tab == 0 {
-        ui::view_map_slots(state)
-    } else {
-        ui::view_mode_lines(state)
+    let right_content: Element<'_, Message> = match state.selected_tab {
+        0 => ui::view_map_slots(state),
+        1 => ui::view_mode_lines(state),
+        2 => ui::view_team_creation(state),
+        _ => ui::view_map_slots(state),
     };
 
     let right_scroll = iced::widget::scrollable(column![container(tabs).padding(6), right_content]);

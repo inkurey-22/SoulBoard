@@ -3,8 +3,8 @@ use crate::app::palette as pal;
 use crate::app::styles;
 use crate::model::{MapStatus, SlotWinner};
 use iced::{
-    Alignment, Element,
-    widget::{button, checkbox, column, combo_box, container, row, text, text_input},
+    Alignment, ContentFit, Element,
+    widget::{button, checkbox, column, combo_box, container, image, row, text, text_input},
 };
 
 pub(super) fn view_stream_and_teams(state: &Soulboard) -> Element<'_, Message> {
@@ -266,5 +266,75 @@ pub(super) fn view_mode_lines(state: &Soulboard) -> Element<'_, Message> {
     container(modes_row)
         .padding(6)
         .style(styles::card_style)
+        .into()
+}
+
+pub(super) fn view_team_creation(state: &Soulboard) -> Element<'_, Message> {
+    let logo_path = state
+        .create_team_logo_path
+        .as_ref()
+        .map(|p| p.display().to_string())
+        .unwrap_or_else(|| "No file selected".to_string());
+
+    let feedback_color = if state.create_team_feedback_is_error {
+        pal::red()
+    } else {
+        pal::green()
+    };
+
+    let logo_row = row![
+        button("Choose logo")
+            .on_press(Message::PickCreateTeamLogo)
+            .style(styles::primary_button_style),
+        text(logo_path).size(14).color(pal::subtext0()),
+    ]
+    .spacing(12)
+    .align_y(Alignment::Center);
+
+    let logo_preview: Element<'_, Message> = if let Some(path) = &state.create_team_logo_path {
+        container(
+            image(path)
+                .width(iced::Length::Fixed(180.0))
+                .height(iced::Length::Fixed(180.0))
+                .content_fit(ContentFit::Contain),
+        )
+        .padding(8)
+        .style(styles::card_style)
+        .into()
+    } else {
+        container(text("Logo preview appears here").size(14).color(pal::subtext0()))
+            .width(iced::Length::Fixed(196.0))
+            .height(iced::Length::Fixed(196.0))
+            .padding(8)
+            .center_x(iced::Length::Fill)
+            .center_y(iced::Length::Fill)
+            .style(styles::card_style)
+            .into()
+    };
+
+    let mut content = column![
+        container(text("Team Creation").color(pal::red()).size(20)).padding(6),
+        text_input("Full name (directory name)", &state.create_team_full_input)
+            .on_input(Message::SetCreateTeamFull)
+            .style(styles::input_style),
+        text_input("Short name", &state.create_team_trunc_input)
+            .on_input(Message::SetCreateTeamTrunc)
+            .style(styles::input_style),
+        logo_row,
+        logo_preview,
+        button("Create team")
+            .on_press(Message::SubmitCreateTeam)
+            .style(styles::primary_button_style),
+    ]
+    .spacing(12)
+    .align_x(Alignment::Start);
+
+    if !state.create_team_feedback.is_empty() {
+        content = content.push(text(&state.create_team_feedback).size(14).color(feedback_color));
+    }
+
+    container(content)
+        .padding(8)
+        .style(|_| container::Catalog::style(&styles::Card, &()))
         .into()
 }
