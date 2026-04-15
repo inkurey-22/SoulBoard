@@ -27,9 +27,9 @@ pub struct Soulboard {
     pub selected_tab: usize,
 }
 
-mod teams;
 mod palette;
 mod styles;
+mod teams;
 
 /// Messages/events handled by the UI.
 #[derive(Debug, Clone)]

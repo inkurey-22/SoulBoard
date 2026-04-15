@@ -1,6 +1,6 @@
 use crate::app::palette as pal;
-use iced::widget::{button, checkbox, container, text_input, scrollable, overlay::menu};
-use iced::{Background, Border, Color, Vector, Shadow};
+use iced::widget::{button, checkbox, container, overlay::menu, scrollable, text_input};
+use iced::{Background, Border, Color, Shadow, Vector};
 
 pub struct Card;
 pub struct PrimaryButton;
@@ -11,8 +11,7 @@ pub struct Checkbox;
 impl container::Catalog for Card {
     type Class<'a> = ();
 
-    fn default<'a>() -> Self::Class<'a> {
-    }
+    fn default<'a>() -> Self::Class<'a> {}
 
     fn style(&self, _class: &Self::Class<'_>) -> container::Style {
         container::Style {
@@ -31,8 +30,7 @@ impl container::Catalog for Card {
 impl button::Catalog for PrimaryButton {
     type Class<'a> = ();
 
-    fn default<'a>() -> Self::Class<'a> {
-    }
+    fn default<'a>() -> Self::Class<'a> {}
 
     fn style(&self, _class: &Self::Class<'_>, status: button::Status) -> button::Style {
         let active = button::Style {
@@ -62,8 +60,7 @@ impl button::Catalog for PrimaryButton {
 impl text_input::Catalog for Input {
     type Class<'a> = ();
 
-    fn default<'a>() -> Self::Class<'a> {
-    }
+    fn default<'a>() -> Self::Class<'a> {}
 
     fn style(&self, _class: &Self::Class<'_>, status: text_input::Status) -> text_input::Style {
         let active = text_input::Style {
@@ -91,9 +88,7 @@ impl text_input::Catalog for Input {
 impl scrollable::Catalog for Dropdown {
     type Class<'a> = ();
 
-    fn default<'a>() -> Self::Class<'a> {
-    }
-    
+    fn default<'a>() -> Self::Class<'a> {}
 
     fn style(&self, _class: &Self::Class<'_>, _status: scrollable::Status) -> scrollable::Style {
         scrollable::Style {
@@ -122,8 +117,7 @@ impl scrollable::Catalog for Dropdown {
 impl menu::Catalog for Dropdown {
     type Class<'a> = ();
 
-    fn default<'a>() -> <Self as menu::Catalog>::Class<'a> {
-    }
+    fn default<'a>() -> <Self as menu::Catalog>::Class<'a> {}
 
     fn style(&self, _class: &<Self as menu::Catalog>::Class<'_>) -> menu::Style {
         menu::Style {
@@ -143,8 +137,7 @@ impl menu::Catalog for Dropdown {
 impl checkbox::Catalog for Checkbox {
     type Class<'a> = ();
 
-    fn default<'a>() -> Self::Class<'a> {
-    }
+    fn default<'a>() -> Self::Class<'a> {}
 
     fn style(&self, _class: &Self::Class<'_>, status: checkbox::Status) -> checkbox::Style {
         let is_checked = match status {

@@ -96,7 +96,9 @@ fn main() -> iced::Result {
                 .map(|line| {
                     line.maps
                         .iter()
-                        .map(|entry| combo_box::State::with_selection(maps.clone(), entry.map.as_ref()))
+                        .map(|entry| {
+                            combo_box::State::with_selection(maps.clone(), entry.map.as_ref())
+                        })
                         .collect()
                 })
                 .collect();

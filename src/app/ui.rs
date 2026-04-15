@@ -1,7 +1,7 @@
 use super::{Message, Soulboard};
-use crate::model::MapStatus;
 use crate::app::palette as pal;
-use crate::app::styles as styles;
+use crate::app::styles;
+use crate::model::MapStatus;
 use iced::{
     Alignment, Element,
     widget::{button, checkbox, column, combo_box, container, row, text, text_input},
@@ -82,12 +82,16 @@ pub(super) fn view_stream_and_teams(state: &Soulboard) -> Element<'_, Message> {
         button("Clear Picks/Bans")
             .on_press(Message::ClearPicksBans)
             .style(styles::primary_button_style),
-        text("Bridge: ws://127.0.0.1:7878/ws").size(14).color(pal::subtext0()),
+        text("Bridge: ws://127.0.0.1:7878/ws")
+            .size(14)
+            .color(pal::subtext0()),
     ]
     .spacing(14)
     .align_x(Alignment::Center);
 
-    container(left).style(|_| container::Catalog::style(&styles::Card, &())).into()
+    container(left)
+        .style(|_| container::Catalog::style(&styles::Card, &()))
+        .into()
 }
 
 pub(super) fn view_map_slots(state: &Soulboard) -> Element<'_, Message> {
@@ -134,9 +138,9 @@ pub(super) fn view_map_slots(state: &Soulboard) -> Element<'_, Message> {
         let is_selected = state.state.selected_slot == Some(i);
         let use_checkbox = checkbox("", is_selected)
             .on_toggle(move |b| Message::ToggleUse(i, b))
-                .style(styles::checkbox_style);
+            .style(styles::checkbox_style);
 
-            let row_elem = row![
+        let row_elem = row![
             container(use_checkbox).width(iced::Length::FillPortion(1)),
             container(map_pick).width(iced::Length::FillPortion(4)),
             container(mode_pick).width(iced::Length::FillPortion(4)),
@@ -147,7 +151,10 @@ pub(super) fn view_map_slots(state: &Soulboard) -> Element<'_, Message> {
         map_rows = map_rows.push(row_elem).spacing(6);
     }
 
-    container(map_rows).padding(8).style(|_| container::Catalog::style(&styles::Card, &())).into()
+    container(map_rows)
+        .padding(8)
+        .style(|_| container::Catalog::style(&styles::Card, &()))
+        .into()
 }
 
 pub(super) fn view_mode_lines(state: &Soulboard) -> Element<'_, Message> {
@@ -215,5 +222,8 @@ pub(super) fn view_mode_lines(state: &Soulboard) -> Element<'_, Message> {
         );
     }
 
-    container(modes_row).padding(6).style(styles::card_style).into()
+    container(modes_row)
+        .padding(6)
+        .style(styles::card_style)
+        .into()
 }
