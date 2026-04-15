@@ -14,7 +14,7 @@ use axum::{
 };
 use tokio::sync::broadcast;
 
-use crate::model::TeamState;
+use crate::model::{SlotWinner, TeamState};
 
 #[derive(Clone)]
 struct BridgeState {
@@ -31,19 +31,38 @@ pub struct BridgeHandle {
 /// `map` and `mode` keys derived from the selected slot (or the first
 /// non-empty slot) and removes internal slot vectors from the payload.
 pub fn scores_payload(state: &TeamState) -> String {
-    match serde_json::to_value(state) {
+    let mut normalized = state.clone();
+    normalized.ensure_slot_winners_len();
+
+    match serde_json::to_value(&normalized) {
         Ok(mut value) => {
             if let serde_json::Value::Object(ref mut map) = value {
                 map.remove("map_mode_slots");
+                map.remove("slot_winners");
                 map.remove("selected_slot");
+
+                let chosen_slot = if let Some(idx) = normalized.selected_slot {
+                    if idx < normalized.map_mode_slots.len() {
+                        Some(idx)
+                    } else {
+                        None
+                    }
+                } else {
+                    normalized
+                        .map_mode_slots
+                        .iter()
+                        .position(|(map_opt, mode_opt)| {
+                            map_opt.as_ref().is_some_and(|s| !s.is_empty())
+                                || mode_opt.as_ref().is_some_and(|s| !s.is_empty())
+                        })
+                };
 
                 let mut current_map: Option<String> = None;
                 let mut current_mode: Option<String> = None;
+                let mut current_winner: Option<String> = None;
 
-                if let Some(idx) = state.selected_slot
-                    && idx < state.map_mode_slots.len()
-                {
-                    let (ref map_opt, ref mode_opt) = state.map_mode_slots[idx];
+                if let Some(idx) = chosen_slot {
+                    let (ref map_opt, ref mode_opt) = normalized.map_mode_slots[idx];
                     if let Some(m) = map_opt
                         && !m.is_empty()
                     {
@@ -54,26 +73,24 @@ pub fn scores_payload(state: &TeamState) -> String {
                     {
                         current_mode = Some(mo.clone());
                     }
-                }
 
-                if current_map.is_none() || current_mode.is_none() {
-                    for slot in &state.map_mode_slots {
-                        if current_map.is_none()
-                            && let Some(ref m) = slot.0
-                            && !m.is_empty()
-                        {
-                            current_map = Some(m.clone());
-                        }
-                        if current_mode.is_none()
-                            && let Some(ref mo) = slot.1
-                            && !mo.is_empty()
-                        {
-                            current_mode = Some(mo.clone());
-                        }
-                        if current_map.is_some() && current_mode.is_some() {
-                            break;
-                        }
-                    }
+                    current_winner = match normalized.slot_winners.get(idx).copied() {
+                        Some(SlotWinner::TeamA) => Some(if !normalized.team_a_trunc.is_empty() {
+                            normalized.team_a_trunc.clone()
+                        } else if !normalized.team_a_name.is_empty() {
+                            normalized.team_a_name.clone()
+                        } else {
+                            "Team A".to_string()
+                        }),
+                        Some(SlotWinner::TeamB) => Some(if !normalized.team_b_trunc.is_empty() {
+                            normalized.team_b_trunc.clone()
+                        } else if !normalized.team_b_name.is_empty() {
+                            normalized.team_b_name.clone()
+                        } else {
+                            "Team B".to_string()
+                        }),
+                        _ => None,
+                    };
                 }
 
                 if let Some(m) = current_map {
@@ -81,6 +98,9 @@ pub fn scores_payload(state: &TeamState) -> String {
                 }
                 if let Some(mo) = current_mode {
                     map.insert("mode".to_string(), serde_json::Value::String(mo));
+                }
+                if let Some(winner) = current_winner {
+                    map.insert("map_winner".to_string(), serde_json::Value::String(winner));
                 }
             }
 

@@ -25,7 +25,9 @@ fn main() -> iced::Result {
     iced::application("Soulboard", update, view)
         .centered()
         .run_with(|| {
-            let state = load_state().unwrap_or_default();
+            let mut state = load_state().unwrap_or_default();
+            state.ensure_slot_winners_len();
+            state.sync_scores_from_slot_winners();
 
             // load available maps and modes from assets directory
             let mut maps = Vec::new();

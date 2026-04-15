@@ -11,6 +11,14 @@ pub enum MapStatus {
     Picked,
 }
 
+/// Winner assigned to a map/mode slot.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum SlotWinner {
+    None,
+    TeamA,
+    TeamB,
+}
+
 /// A single map entry with optional map name and its status.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MapEntry {
@@ -42,8 +50,45 @@ pub struct TeamState {
     pub team_a: i32,
     pub team_b: i32,
     pub map_mode_slots: Vec<(Option<String>, Option<String>)>,
+    #[serde(default = "default_slot_winners")]
+    pub slot_winners: Vec<SlotWinner>,
     pub mode_lines: Vec<ModeLine>,
     pub selected_slot: Option<usize>,
+}
+
+fn default_slot_winners() -> Vec<SlotWinner> {
+    vec![SlotWinner::None; 9]
+}
+
+impl TeamState {
+    /// Keep `slot_winners` aligned with `map_mode_slots` length.
+    pub fn ensure_slot_winners_len(&mut self) {
+        let expected_len = self.map_mode_slots.len();
+        if self.slot_winners.len() < expected_len {
+            self.slot_winners.resize(expected_len, SlotWinner::None);
+        } else if self.slot_winners.len() > expected_len {
+            self.slot_winners.truncate(expected_len);
+        }
+    }
+
+    /// Recompute team scores from recorded map winners.
+    pub fn sync_scores_from_slot_winners(&mut self) {
+        self.ensure_slot_winners_len();
+
+        let team_a_wins = self
+            .slot_winners
+            .iter()
+            .filter(|winner| matches!(winner, SlotWinner::TeamA))
+            .count() as i32;
+        let team_b_wins = self
+            .slot_winners
+            .iter()
+            .filter(|winner| matches!(winner, SlotWinner::TeamB))
+            .count() as i32;
+
+        self.team_a = team_a_wins;
+        self.team_b = team_b_wins;
+    }
 }
 
 impl Default for TeamState {
@@ -63,6 +108,7 @@ impl Default for TeamState {
             team_a: 0,
             team_b: 0,
             map_mode_slots: vec![(Some(String::new()), Some(String::new())); 9],
+            slot_winners: default_slot_winners(),
             mode_lines: vec![
                 ModeLine {
                     name: "Splat Zones".to_string(),

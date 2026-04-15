@@ -1,7 +1,7 @@
 use super::{Message, Soulboard};
 use crate::app::palette as pal;
 use crate::app::styles;
-use crate::model::MapStatus;
+use crate::model::{MapStatus, SlotWinner};
 use iced::{
     Alignment, Element,
     widget::{button, checkbox, column, combo_box, container, row, text, text_input},
@@ -76,6 +76,9 @@ pub(super) fn view_stream_and_teams(state: &Soulboard) -> Element<'_, Message> {
         container(team_b_pick).width(iced::Length::Fill),
         text(state.state.team_b).size(32).color(pal::text()),
         team_b_controls,
+        button("Swap Teams")
+            .on_press(Message::SwapTeams)
+            .style(styles::primary_button_style),
         button("Reset Score")
             .on_press(Message::ResetAll)
             .style(styles::primary_button_style),
@@ -106,6 +109,7 @@ pub(super) fn view_map_slots(state: &Soulboard) -> Element<'_, Message> {
             container(text("Use").color(pal::subtext1())).width(iced::Length::FillPortion(1)),
             container(text("Map").color(pal::subtext1())).width(iced::Length::FillPortion(4)),
             container(text("Mode").color(pal::subtext1())).width(iced::Length::FillPortion(4)),
+            container(text("Winner").color(pal::subtext1())).width(iced::Length::FillPortion(3)),
         ]
         .spacing(20),
     );
@@ -140,10 +144,21 @@ pub(super) fn view_map_slots(state: &Soulboard) -> Element<'_, Message> {
             .on_toggle(move |b| Message::ToggleUse(i, b))
             .style(styles::checkbox_style);
 
+        let winner = state
+            .state
+            .slot_winners
+            .get(i)
+            .copied()
+            .unwrap_or(SlotWinner::None);
+        let winner_button = button(text(slot_winner_label(state, winner)))
+            .on_press(Message::CycleSlotWinner(i))
+            .style(styles::primary_button_style);
+
         let row_elem = row![
             container(use_checkbox).width(iced::Length::FillPortion(1)),
             container(map_pick).width(iced::Length::FillPortion(4)),
             container(mode_pick).width(iced::Length::FillPortion(4)),
+            container(winner_button).width(iced::Length::FillPortion(3)),
         ]
         .spacing(12)
         .align_y(Alignment::Center);
@@ -155,6 +170,32 @@ pub(super) fn view_map_slots(state: &Soulboard) -> Element<'_, Message> {
         .padding(8)
         .style(|_| container::Catalog::style(&styles::Card, &()))
         .into()
+}
+
+fn slot_winner_label(state: &Soulboard, winner: SlotWinner) -> String {
+    match winner {
+        SlotWinner::None => "Winner: -".to_string(),
+        SlotWinner::TeamA => {
+            let name = if !state.state.team_a_trunc.is_empty() {
+                &state.state.team_a_trunc
+            } else if !state.state.team_a_name.is_empty() {
+                &state.state.team_a_name
+            } else {
+                "Team A"
+            };
+            format!("Winner: {name}")
+        }
+        SlotWinner::TeamB => {
+            let name = if !state.state.team_b_trunc.is_empty() {
+                &state.state.team_b_trunc
+            } else if !state.state.team_b_name.is_empty() {
+                &state.state.team_b_name
+            } else {
+                "Team B"
+            };
+            format!("Winner: {name}")
+        }
+    }
 }
 
 pub(super) fn view_mode_lines(state: &Soulboard) -> Element<'_, Message> {

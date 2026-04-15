@@ -7,7 +7,7 @@
 use crate::storage::save_state;
 use crate::{
     bridge::BridgeHandle,
-    model::{MapStatus, TeamState},
+    model::{MapStatus, SlotWinner, TeamState},
 };
 use iced::{
     Alignment, Element, Task,
@@ -38,6 +38,7 @@ pub enum Message {
     SubtractA,
     AddB,
     SubtractB,
+    SwapTeams,
     ResetAll,
     ClearPicksBans,
     SetDescription(String),
@@ -46,6 +47,7 @@ pub enum Message {
 
     SelectMap(usize, String),
     SelectMode(usize, String),
+    CycleSlotWinner(usize),
     ToggleUse(usize, bool),
     SelectModeLineMap(usize, usize, String),
     ToggleModeLineStatus(usize, usize, MapStatus),
@@ -62,7 +64,28 @@ pub fn update(state: &mut Soulboard, message: Message) -> Task<Message> {
         Message::SubtractA => state.state.team_a -= 1,
         Message::AddB => state.state.team_b += 1,
         Message::SubtractB => state.state.team_b -= 1,
+        Message::SwapTeams => {
+            std::mem::swap(&mut state.state.team_a, &mut state.state.team_b);
+            std::mem::swap(&mut state.state.team_a_name, &mut state.state.team_b_name);
+            std::mem::swap(&mut state.state.team_a_full, &mut state.state.team_b_full);
+            std::mem::swap(&mut state.state.team_a_trunc, &mut state.state.team_b_trunc);
+            std::mem::swap(&mut state.state.team_a_dir, &mut state.state.team_b_dir);
+
+            state.state.ensure_slot_winners_len();
+            for winner in &mut state.state.slot_winners {
+                *winner = match *winner {
+                    SlotWinner::TeamA => SlotWinner::TeamB,
+                    SlotWinner::TeamB => SlotWinner::TeamA,
+                    SlotWinner::None => SlotWinner::None,
+                };
+            }
+        }
         Message::ResetAll => {
+            state.state.ensure_slot_winners_len();
+            for winner in &mut state.state.slot_winners {
+                *winner = SlotWinner::None;
+            }
+
             state.state.team_a = 0;
             state.state.team_b = 0;
         }
@@ -85,6 +108,16 @@ pub fn update(state: &mut Soulboard, message: Message) -> Task<Message> {
         Message::SelectMode(idx, sel) => {
             if idx < state.state.map_mode_slots.len() {
                 state.state.map_mode_slots[idx].1 = Some(sel.clone());
+            }
+        }
+        Message::CycleSlotWinner(idx) => {
+            state.state.ensure_slot_winners_len();
+            if idx < state.state.slot_winners.len() {
+                state.state.slot_winners[idx] = match state.state.slot_winners[idx] {
+                    SlotWinner::None => SlotWinner::TeamA,
+                    SlotWinner::TeamA => SlotWinner::TeamB,
+                    SlotWinner::TeamB => SlotWinner::None,
+                };
             }
         }
         Message::SelectModeLineMap(mid, midx, sel) => {
@@ -149,6 +182,9 @@ pub fn update(state: &mut Soulboard, message: Message) -> Task<Message> {
             state.selected_tab = idx;
         }
     }
+
+    // Team scores are derived from map winners.
+    state.state.sync_scores_from_slot_winners();
 
     if let Some(bridge) = &state.bridge {
         bridge.publish_state(&state.state);
