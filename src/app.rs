@@ -41,10 +41,6 @@ mod teams;
 /// Messages/events handled by the UI.
 #[derive(Debug, Clone)]
 pub enum Message {
-    AddA,
-    SubtractA,
-    AddB,
-    SubtractB,
     SwapTeams,
     ResetAll,
     ClearPicksBans,
@@ -54,7 +50,7 @@ pub enum Message {
 
     SelectMap(usize, String),
     SelectMode(usize, String),
-    CycleSlotWinner(usize),
+    SetSlotWinner(usize, SlotWinner),
     ToggleUse(usize, bool),
     SelectModeLineMap(usize, usize, String),
     ToggleModeLineStatus(usize, usize, MapStatus),
@@ -95,10 +91,6 @@ fn refresh_team_combo_states(state: &mut Soulboard) {
 /// and persist the updated state to disk.
 pub fn update(state: &mut Soulboard, message: Message) -> Task<Message> {
     match message {
-        Message::AddA => state.state.team_a += 1,
-        Message::SubtractA => state.state.team_a -= 1,
-        Message::AddB => state.state.team_b += 1,
-        Message::SubtractB => state.state.team_b -= 1,
         Message::SwapTeams => {
             std::mem::swap(&mut state.state.team_a, &mut state.state.team_b);
             std::mem::swap(&mut state.state.team_a_name, &mut state.state.team_b_name);
@@ -134,7 +126,6 @@ pub fn update(state: &mut Soulboard, message: Message) -> Task<Message> {
         Message::SetDescription(desc) => state.state.description = desc,
         Message::SetCommentatorA(s) => state.state.commentator_a = s,
         Message::SetCommentatorB(s) => state.state.commentator_b = s,
-        // cycle messages removed
         Message::SelectMap(idx, sel) => {
             if idx < state.state.map_mode_slots.len() {
                 state.state.map_mode_slots[idx].0 = Some(sel.clone());
@@ -145,14 +136,10 @@ pub fn update(state: &mut Soulboard, message: Message) -> Task<Message> {
                 state.state.map_mode_slots[idx].1 = Some(sel.clone());
             }
         }
-        Message::CycleSlotWinner(idx) => {
+        Message::SetSlotWinner(idx, winner) => {
             state.state.ensure_slot_winners_len();
             if idx < state.state.slot_winners.len() {
-                state.state.slot_winners[idx] = match state.state.slot_winners[idx] {
-                    SlotWinner::None => SlotWinner::TeamA,
-                    SlotWinner::TeamA => SlotWinner::TeamB,
-                    SlotWinner::TeamB => SlotWinner::None,
-                };
+                state.state.slot_winners[idx] = winner;
             }
         }
         Message::SelectModeLineMap(mid, midx, sel) => {

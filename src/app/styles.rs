@@ -1,5 +1,5 @@
 use crate::app::palette as pal;
-use iced::widget::{button, checkbox, container, overlay::menu, scrollable, text_input};
+use iced::widget::{button, checkbox, container, overlay::menu, radio, scrollable, text_input};
 use iced::{Background, Border, Color, Shadow, Vector};
 
 pub struct Card;
@@ -7,6 +7,8 @@ pub struct PrimaryButton;
 pub struct Input;
 pub struct Dropdown;
 pub struct Checkbox;
+pub struct Radio;
+pub struct Divider;
 
 impl container::Catalog for Card {
     type Class<'a> = ();
@@ -167,6 +169,53 @@ impl checkbox::Catalog for Checkbox {
     }
 }
 
+impl radio::Catalog for Radio {
+    type Class<'a> = ();
+
+    fn default<'a>() -> Self::Class<'a> {}
+
+    fn style(&self, _class: &Self::Class<'_>, status: radio::Status) -> radio::Style {
+        let active = radio::Style {
+            background: Background::Color(Color::TRANSPARENT),
+            dot_color: pal::red(),
+            border_width: 1.0,
+            border_color: pal::surface1(),
+            text_color: Some(pal::text()),
+        };
+
+        match status {
+            radio::Status::Active { is_selected } => radio::Style {
+                border_color: if is_selected { pal::red() } else { pal::surface1() },
+                ..active
+            },
+            radio::Status::Hovered { is_selected } => radio::Style {
+                background: Background::Color(pal::surface0()),
+                border_color: if is_selected { pal::red() } else { pal::surface1() },
+                ..active
+            },
+        }
+    }
+}
+
+impl container::Catalog for Divider {
+    type Class<'a> = ();
+
+    fn default<'a>() -> Self::Class<'a> {}
+
+    fn style(&self, _class: &Self::Class<'_>) -> container::Style {
+        container::Style {
+            background: Some(Background::Color(pal::surface2())),
+            border: Border {
+                color: Color::TRANSPARENT,
+                width: 0.0,
+                radius: 0.0.into(),
+            },
+            shadow: Shadow::default(),
+            text_color: None,
+        }
+    }
+}
+
 // Convenience helpers to simplify usage sites in UI code. These are generic
 // functions that forward to the Catalog implementations above so callers can
 // pass a plain function pointer instead of repeating closure boilerplate.
@@ -188,4 +237,12 @@ pub fn dropdown_menu_style<Class>(_class: &Class) -> menu::Style {
 
 pub fn checkbox_style<Class>(_class: &Class, status: checkbox::Status) -> checkbox::Style {
     checkbox::Catalog::style(&Checkbox, &(), status)
+}
+
+pub fn radio_style<Class>(_class: &Class, status: radio::Status) -> radio::Style {
+    radio::Catalog::style(&Radio, &(), status)
+}
+
+pub fn divider_style<Class>(_class: &Class) -> container::Style {
+    container::Catalog::style(&Divider, &())
 }

@@ -4,7 +4,7 @@ use crate::app::styles;
 use crate::model::{MapStatus, SlotWinner};
 use iced::{
     Alignment, ContentFit, Element,
-    widget::{button, checkbox, column, combo_box, container, image, row, text, text_input},
+    widget::{button, checkbox, column, combo_box, container, image, radio, row, text, text_input, Space},
 };
 
 pub(super) fn view_stream_and_teams(state: &Soulboard) -> Element<'_, Message> {
@@ -35,28 +35,6 @@ pub(super) fn view_stream_and_teams(state: &Soulboard) -> Element<'_, Message> {
     .input_style(styles::input_style)
     .menu_style(styles::dropdown_menu_style);
 
-    let team_a_controls = row![
-        button("-1")
-            .on_press(Message::SubtractA)
-            .style(styles::primary_button_style),
-        button("+1")
-            .on_press(Message::AddA)
-            .style(styles::primary_button_style),
-    ]
-    .spacing(12)
-    .align_y(Alignment::Center);
-
-    let team_b_controls = row![
-        button("-1")
-            .on_press(Message::SubtractB)
-            .style(styles::primary_button_style),
-        button("+1")
-            .on_press(Message::AddB)
-            .style(styles::primary_button_style),
-    ]
-    .spacing(12)
-    .align_y(Alignment::Center);
-
     let left = column![
         text("Soulboard").size(42).color(pal::red()),
         container(text("Stream Info").size(16).color(pal::subtext1())).padding(8),
@@ -72,10 +50,8 @@ pub(super) fn view_stream_and_teams(state: &Soulboard) -> Element<'_, Message> {
         container(text("Teams").size(16).color(pal::subtext1())).padding(8),
         container(team_a_pick).width(iced::Length::Fill),
         text(state.state.team_a).size(32).color(pal::text()),
-        team_a_controls,
         container(team_b_pick).width(iced::Length::Fill),
         text(state.state.team_b).size(32).color(pal::text()),
-        team_b_controls,
         button("Swap Teams")
             .on_press(Message::SwapTeams)
             .style(styles::primary_button_style),
@@ -150,20 +126,47 @@ pub(super) fn view_map_slots(state: &Soulboard) -> Element<'_, Message> {
             .get(i)
             .copied()
             .unwrap_or(SlotWinner::None);
-        let winner_button = button(text(slot_winner_label(state, winner)))
-            .on_press(Message::CycleSlotWinner(i))
-            .style(styles::primary_button_style);
+        let winner_controls = column![
+            radio(
+                slot_winner_option_label(state, SlotWinner::None),
+                SlotWinner::None,
+                Some(winner),
+                move |winner| Message::SetSlotWinner(i, winner),
+            )
+            .style(styles::radio_style),
+            radio(
+                slot_winner_option_label(state, SlotWinner::TeamA),
+                SlotWinner::TeamA,
+                Some(winner),
+                move |winner| Message::SetSlotWinner(i, winner),
+            )
+            .style(styles::radio_style),
+            radio(
+                slot_winner_option_label(state, SlotWinner::TeamB),
+                SlotWinner::TeamB,
+                Some(winner),
+                move |winner| Message::SetSlotWinner(i, winner),
+            )
+            .style(styles::radio_style),
+        ]
+        .spacing(4);
 
         let row_elem = row![
             container(use_checkbox).width(iced::Length::FillPortion(1)),
             container(map_pick).width(iced::Length::FillPortion(4)),
             container(mode_pick).width(iced::Length::FillPortion(4)),
-            container(winner_button).width(iced::Length::FillPortion(3)),
+            container(winner_controls).width(iced::Length::FillPortion(3)),
         ]
         .spacing(12)
         .align_y(Alignment::Center);
 
         map_rows = map_rows.push(row_elem).spacing(6);
+
+        if i < 8 {
+            map_rows = map_rows.push(
+                container(Space::new(iced::Length::Fill, 1)).style(styles::divider_style),
+            );
+        }
     }
 
     container(map_rows)
@@ -172,28 +175,26 @@ pub(super) fn view_map_slots(state: &Soulboard) -> Element<'_, Message> {
         .into()
 }
 
-fn slot_winner_label(state: &Soulboard, winner: SlotWinner) -> String {
+fn slot_winner_option_label(state: &Soulboard, winner: SlotWinner) -> String {
     match winner {
-        SlotWinner::None => "Winner: -".to_string(),
+        SlotWinner::None => "No winner".to_string(),
         SlotWinner::TeamA => {
-            let name = if !state.state.team_a_trunc.is_empty() {
-                &state.state.team_a_trunc
+            if !state.state.team_a_trunc.is_empty() {
+                state.state.team_a_trunc.clone()
             } else if !state.state.team_a_name.is_empty() {
-                &state.state.team_a_name
+                state.state.team_a_name.clone()
             } else {
-                "Team A"
-            };
-            format!("Winner: {name}")
+                "Team A".to_string()
+            }
         }
         SlotWinner::TeamB => {
-            let name = if !state.state.team_b_trunc.is_empty() {
-                &state.state.team_b_trunc
+            if !state.state.team_b_trunc.is_empty() {
+                state.state.team_b_trunc.clone()
             } else if !state.state.team_b_name.is_empty() {
-                &state.state.team_b_name
+                state.state.team_b_name.clone()
             } else {
-                "Team B"
-            };
-            format!("Winner: {name}")
+                "Team B".to_string()
+            }
         }
     }
 }
@@ -248,9 +249,11 @@ pub(super) fn view_mode_lines(state: &Soulboard) -> Element<'_, Message> {
                 })
                 .style(styles::checkbox_style);
 
-            let cell = column![map_pick, row![banned_chk, picked_chk].spacing(6)]
-                .spacing(6)
-                .width(iced::Length::FillPortion(1));
+            let cell = container(
+                column![map_pick, row![banned_chk, picked_chk].spacing(6)].spacing(6),
+            )
+            .padding([8, 0])
+            .width(iced::Length::FillPortion(1));
 
             col = col.push(cell);
         }
@@ -307,7 +310,6 @@ pub(super) fn view_team_creation(state: &Soulboard) -> Element<'_, Message> {
             .height(iced::Length::Fixed(196.0))
             .padding(8)
             .center_x(iced::Length::Fill)
-            .center_y(iced::Length::Fill)
             .style(styles::card_style)
             .into()
     };
